@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# fedora commons database
+#
+# chkconfig:   - 20 80
+# description: Fedora commons content library
+
+### BEGIN INIT INFO
+# Provides: fedora
+# Required-Start: mysqld
+# Required-Stop: mysqld
+# Short-Description: Fedora commons content library
+# Description: Fedora commons content library
+### END INIT INFO
+
+. /etc/profile.d/fedora-profile.sh
+export CATALINA_PID=/tmp/fedora-catalina.pid
+
+# determines if Fedora is running by examining the command line of a certain
+# pid.
+# args: <suspected pid of Fedora>
+fedora_alive()
+{
+	[ -d /proc/"$1" ] || return 1
+	cmd=$(ps -p "$1" -o command=)
+	[ $? == 0 ] || return 1
+	[[ "${cmd}" =~ ".*java.*fedora.*tomcat.* start$" ]]
+}
+
+status()
+{
+	[ -e "$CATALINA_PID" ] || return 3
+	local pid=$(<$CATALINA_PID)
+	fedora_alive $pid || return 3
+	echo "Fedora running at pid $pid"
+}
+
+start()
+{
+	local pid=""	
+	[ -e $CATALINA_PID ] && pid=$(<$CATALINA_PID)
+	if [ -n "$pid" ] && fedora_alive $pid; then
+		echo "Can't start, Fedora already running as pid $pid"
+		return 1
+	fi
+
+	# reset working directory, because the java process takes a handle on
+	# the directory from where this init script was ran
+	cd /
+
+	/var/opt/fedora/tomcat/bin/startup.sh	
+}
+
+stop()
+{
+	local pid=$(<$CATALINA_PID)
+	/var/opt/fedora/tomcat/bin/shutdown.sh >/dev/null 2>&1
+	retval=$?
+	sleep 3
+	[ -z "${pid}" ] && return $?
+
+	for i in $(seq 0 10); do
+		fedora_alive $pid || return 0
+
+		echo "Fedora shutdown failed, retry in 5 secs"
+		sleep 5
+		/var/opt/fedora/tomcat/bin/shutdown.sh >/dev/null 2>&1
+	done
+	fedora_alive $pid || return 0
+	echo "Force kill Fedora."
+	kill ${pid}
+	sleep 5
+	fedora_alive || return 0
+	kill -9 ${pid}
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	restart) stop; start ;;
+	status) status ;;
+	*)
+	echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+	exit 2
+esac
+exit $?
+

@@ -1,0 +1,101 @@
+#!/bin/bash
+
+#install fedora
+
+log()
+{
+        echo "$(date +%Y-%m-%d-%H:%M:%S) Vagrant install: $1" >> /var/log/vagrant_install.log
+
+}
+
+# log "downloading fedora form from download.olenepal.org"
+
+# wget http://download.olenepal.org/dockerise_pusta/nexc-fedora-install.tar.gz -P /tmp/
+
+# log "installing fedora"
+# if [ -f /tmp/nexc-fedora-install.tar.gz ]; then
+#         log "Installing NEXC/Fedora"
+#         pushd /tmp
+#         tar -xzf nexc-fedora-install.tar.gz
+#         pushd nexc-fedora-install
+#         if bash nexc-fedora-install; then
+#                 log "NEXC Fedora installed successfully"
+#         else
+#                 log "NEXC Fedora install failed with code $?"
+#
+#         fi
+#         popd
+# fi
+
+
+log "copying files"
+# Extra files
+cp -fv /code/fedora-profile.sh /etc/profile.d/
+chmod 755 /etc/profile.d/fedora-profile.sh
+source /etc/profile.d/fedora-profile.sh
+
+## configure fedora server
+#rm /var/opt/fedora/server/config/fedora.fcfg
+mkdir -p /var/opt/fedora/server/config
+cp -f /code/fedora.fcfg /var/opt/fedora/server/config/
+## configure tomccat servlet engine
+#rm /var/opt/fedora/tomcat/conf/server.xml
+mkdir -p /var/opt/fedora/tomcat/conf
+cp -f  /code/server.xml /var/opt/fedora/tomcat/conf/
+
+
+#/etc/init.d/fedora start
+ln -s /etc/init.d/fedora /etc/rc2.d/S99fedora
+
+##############################################################
+#Apache configs
+##############################################################
+## this configures the apache virtualhost.
+rm /etc/apache2/sites-available/default
+cp -f "$script"/config/default /etc/apache2/sites-available/
+## this configs the myql cnf for unicode rendering
+rm /etc/mysql/my.cnf
+cp -rf "$script"/config/my.cnf /etc/mysql/
+############################################################
+#apache configs final
+############################################################
+
+##kiwix and khan academy start at boot
+#rm -f /library/knowledge/modules/kiwix/start.sh
+#cp -fv ./start.sh /library/knowledge/modules/kiwix/
+#chmod 755 /library/knowledge/modules/kiwix/start.sh
+
+##manage rc.local
+rm -f /etc/rc.local
+cp -f  /code/rc.local /etc/
+chmod 755 /etc/rc.local
+
+##manage dhcp config
+#rm -rf /etc/dhcp/dhcpd.conf
+#cp -fv ./dhcpd.conf /etc/dhcp/
+
+##copy apache config
+cp -fv /code/apache/*.conf /etc/apache2/sites-available/
+
+##manage apache config for static sites
+a2ensite audio.conf balpathmala.conf epaath.conf external.conf phet.conf sabdakosh.conf sound.conf wiki4schools.conf wiktionary.conf software.conf cdcbooks.conf
+
+##remove osm buttons
+#rm -f /var/www/fez/templates/en/front_page.tpl.html
+#rm -f /var/www/fez/templates/ne/front_page.tpl.html
+#cp -f ./fne/front_page.tpl.html /var/www/fez/templates/ne/
+#cp -f ./fen/front_page.tpl.html /var/www/fez/templates/en/
+
+## manage android api
+# rm -f /var/www/fez/api/include/class.credentials.php
+# cp -f "$script"/config/class.credentials.php /var/www/fez/api/include/
+a2enmod rewrite
+chown -R  www-data:www-data /var/www/fez
+# chown -R  www-data:www-data /library
+chmod -R 775  /var/www/fez
+
+sed -i 's:ErrorLog ${APACHE_LOG_DIR}/error.log:#ErrorLog ${APACHE_LOG_DIR}/error.log:g' /etc/apache2/apache2.conf
+sed -i '201 i ErrorLog /dev/null' /etc/apache2/apache2.conf
+
+
+log "script 00-install fedora completed"

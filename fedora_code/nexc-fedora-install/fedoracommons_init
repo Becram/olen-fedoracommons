@@ -1,0 +1,54 @@
+#!/bin/sh
+# Fedora install script
+#Author: Abhishek Singh <abhishek.singh@olenepal.org>
+
+log() {
+    logger -p user.notice -t nexc-fedora-inst -s -- "$1" 
+}
+
+/etc/init.d/fedora stop >/dev/null 2>&1 || :
+
+echo == Removing $FEDORA_HOME ==
+rm -Rf /var/opt/fedora/
+echo == Starting Fedora Installation ==
+jarfile="./fedora-2.2.1-installer.jar"
+#Check if the installer jar file exists
+if [ ! -e "$jarfile" ]
+then
+	log "Installer not found."
+	exit 1
+fi
+#Check if the md5sum of the installer is available
+md5file="./fedora-2.2.1-installer.jar.md5"
+if [ ! -e "$md5file" ]
+then
+	log "MD5 Hash checksum file not found."
+	exit 1
+fi
+#check if the md5sum of the jarfile matches
+md5sum -c --status $md5file
+if [ $? -ne 0 ]
+then
+	log "Installer is corrupt."
+	exit 1
+fi
+#Run the installation
+expect fedora-installation.exp
+#Check if the installation has run successfully
+if [ $? -ne 0 ] ; then
+	log "Fedora Installation failed."
+	exit 1
+fi
+echo == Copying Fedora Configuration ==
+cp -v fedora.fcfg /var/opt/fedora/server/config/
+echo == Deactivating DNS Lookup in Tomcat ==
+cp /var/opt/fedora/tomcat/conf/server.xml /var/opt/fedora/tomcat/conf/server.xml.default
+sed -i -e 's/enableLookups="true"/enableLookups="false"/' /var/opt/fedora/tomcat/conf/server.xml
+echo == Making Dataset Changes ==
+mkdir -p /library/fedora-data/
+ln -s /library/fedora-data/data /var/opt/fedora/data
+echo "== Install init script =="
+cp -v fedora.initd /etc/init.d/fedora
+chmod a+x /etc/init.d/fedora
+#/sbin/chkconfig --levels 345 fedora on
+

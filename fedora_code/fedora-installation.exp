@@ -1,0 +1,62 @@
+#!/usr/bin/expect
+spawn java -jar fedora-2.2.1-installer.jar
+expect "Enter a value ==>"
+sleep 2
+send "custom\r"
+sleep 2
+expect "Enter a value ==>"
+send "/var/opt/fedora\r"
+sleep 2
+#expect "WARNING: /var/opt/fedora is not empty."
+#expect "WARNING: Overwrite?*"
+#send "yes\r"
+#sleep 2
+expect "Enter a value ==>"
+send "fedoraAdmin\r"
+sleep 2
+expect "Enter a value*"
+send "localhost\r"
+sleep 2
+expect "Enter a value*"
+send "false\r"
+sleep 2
+expect "Enter a value*"
+send "false\r"
+sleep 2
+expect "Enter a value*"
+send "included\r"
+sleep 2
+expect "Enter a value*"
+send "/var/opt/fedora/tomcat\r"
+sleep 2
+expect "Enter a value*"
+send "8080\r"
+sleep 2
+expect "Enter a value*"
+send "8005\r"
+sleep 2
+expect "Enter a value*"
+send "true\r"
+sleep 2
+expect "Enter a value ==>"
+send "mysql\r"
+sleep 2
+expect "Enter a value*"
+send "included\r"
+sleep 2
+expect "Enter a value ==>"
+send "adminFedora\r"
+sleep 2
+expect "Enter a value ==>"
+send "adminFedora\r"
+sleep 2
+expect "Enter a value*"
+send "jdbc:mysql://olen-mysql/fedora22?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true\r"
+sleep 2
+expect "Enter a value*"
+send "com.mysql.jdbc.Driver\r"
+sleep 5
+expect "Enter a value*"
+send "true\r"
+wait
+exit
